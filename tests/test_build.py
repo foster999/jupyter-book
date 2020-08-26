@@ -8,7 +8,7 @@ from jupyter_book import commands
 
 def test_create(tmpdir, cli):
     book = Path(tmpdir) / "new_book"
-    result = cli.invoke(commands.create, str(book))
+    result = cli.invoke(commands.create, book.as_posix())
     assert result.exit_code == 0
     assert book.joinpath("_config.yml").exists()
     assert len(list(book.iterdir())) == 9
@@ -18,8 +18,8 @@ def test_build_from_template(tmpdir, cli):
     """Test building the book template and a few test configs."""
     # Create the book from the template
     book = Path(tmpdir) / "new_book"
-    _ = cli.invoke(commands.create, str(book))
-    build_result = cli.invoke(commands.build, str(book))
+    _ = cli.invoke(commands.create, book.as_posix())
+    build_result = cli.invoke(commands.build, book.as_posix())
     assert build_result.exit_code == 0
     html = book.joinpath("_build", "html")
     assert html.joinpath("index.html").exists()
@@ -30,7 +30,7 @@ def test_custom_config(cli, build_resources):
     """Test a variety of custom configuration values."""
     books, _ = build_resources
     config = books.joinpath("config")
-    result = cli.invoke(commands.build, str(config))
+    result = cli.invoke(commands.build, config.as_posix())
     assert result.exit_code == 0
     html = config.joinpath("_build", "html", "index.html").read_text()
     soup = BeautifulSoup(html, "html.parser")
@@ -48,8 +48,8 @@ def test_custom_config(cli, build_resources):
 def test_toc_builds(cli, build_resources, toc, tmpdir):
     """Test building the book template with several different TOC files."""
     books, tocs = build_resources
-    toc = str(tocs / toc)
-    result = cli.invoke(commands.build, [str(tocs), "--toc", toc, "-W"])
+    toc = (tocs / toc).as_posix()
+    result = cli.invoke(commands.build, [tocs.as_posix(), "--toc", toc, "-W"])
     assert result.exit_code == 0
 
 
@@ -62,7 +62,7 @@ def test_toc_rebuild(cli, build_resources):
     index_html = tocs.joinpath("_build", "html", "index.html")
 
     # Not using -W because we expect warnings for pages not listed in TOC
-    result = cli.invoke(commands.build, [str(tocs), "--toc", str(toc)])
+    result = cli.invoke(commands.build, [tocs.as_posix(), "--toc", toc.as_posix()])
     html = BeautifulSoup(index_html.read_text(), "html.parser")
     tags = html.find_all("a", "reference internal")
     assert result.exit_code == 0
@@ -70,7 +70,7 @@ def test_toc_rebuild(cli, build_resources):
     assert tags[2].attrs["href"] == "content2.html"
 
     toc.write_text("- file: index\n- file: content2\n- file: content1\n")
-    result = cli.invoke(commands.build, [str(tocs), "--toc", str(toc)])
+    result = cli.invoke(commands.build, [tocs.as_posix(), "--toc", toc.as_posix()])
     assert result.exit_code == 0
     html = BeautifulSoup(index_html.read_text(), "html.parser")
     tags = html.find_all("a", "reference internal")
@@ -90,9 +90,9 @@ def test_toc_rebuild(cli, build_resources):
 )
 def test_corrupt_toc(build_resources, cli, toc, msg):
     books, tocs = build_resources
-    toc = str(tocs / toc)
+    toc = (tocs / toc).as_posix()
     with pytest.raises(ValueError):
-        result = cli.invoke(commands.build, [str(tocs), "--toc", toc, "-W"])
+        result = cli.invoke(commands.build, [tocs.as_posix(), "--toc", toc, "-W"])
         assert result.exit_code == 1
         assert msg in result.output
         raise result.exception
